@@ -1,0 +1,80 @@
+#Author: Michael A. Langvad Tonkel
+#Date Created: 14 Jun 2015
+#Date Last Modified: 16 Jun 2015
+#Python Version: 2.7
+#Condition: Prototype
+#Contact: matonkel@gmail.com
+
+#Description: This script creates feature classes from a Master Geodatabase.
+#Creates Master Roads feature class as well as a Private and Public roads feature class.
+#Merges all sections of feature classes for a quadrant into one quadrant total feature class.
+#Copies final product feature class into geodatabase for analysis and cleans Master database.
+
+#Advisory: The full implementation and automation capabilities of this script have been
+#deliberatly suppressed. This script is for demonstration purposes only.
+
+#SCRIPT
+
+import arcpy
+
+arcpy.env.overwriteOutput = True
+
+HCA = 'E:/hillstestpy/HillsboroCityAnalysis.gdb'
+HCM = 'E:/hillstestpy/HillsboroCityMaster.gdb'
+arcpy.env.workspace = HCM
+
+in_feature_name = ['_1N2W31A' , '_1N2W31B' , '_1N2W31C' , '_1N2W31D']
+where_c = "Layer LIKE 'PAVED%' OR Layer LIKE 'CURB%'"
+where_c2 = "NOT Layer LIKE '%CL' AND NOT Layer LIKE '%PARKING' AND NOT Layer LIKE '%DRIVE' AND Layer LIKE 'PAVED%'" \
+           "OR NOT Layer LIKE '%CL' AND NOT Layer LIKE '%PARKING' AND NOT Layer LIKE '%DRIVE' AND Layer LIKE 'CURB%'"
+where_c3 = "Layer LIKE '%PARKING' OR Layer LIKE '%DRIVE'"
+
+def Create_master():
+    for i in in_feature_name:
+        in_feature = '/Polyline' + i
+        out_feature = 'Roads' + i
+        arcpy.Select_analysis(in_feature , out_feature , where_c)
+    return
+    
+def Create_public():
+    for i in in_feature_name:
+        in_feature = '/Roads' + i
+        out_feature = 'Public' + i
+        arcpy.Select_analysis(in_feature , out_feature , where_c2)
+    return
+
+def Create_private():
+    for i in in_feature_name:
+        in_feature = '/Roads' + i
+        out_feature = 'Private' + i
+        arcpy.Select_analysis(in_feature , out_feature , where_c3)
+    return
+
+def Merge_copy():
+    in_fc_pub = ['Public_1N2W31A' , 'Public_1N2W31B' , 'Public_1N2W31C' , 'Public_1N2W31D']
+    in_fc_pri = ['Private_1N2W31A' , 'Private_1N2W31B' , 'Private_1N2W31C' , 'Private_1N2w31D']
+    arcpy.Merge_management( in_fc_pub , 'Public_Paved_1N2W31')
+    arcpy.Merge_management( in_fc_pri , 'Private_Paved_1N2W31')
+    arcpy.CopyFeatures_management('Public_Paved_1N2W31' , HCA + '/Public_Paved_1N2W31')
+    arcpy.CopyFeatures_management('Private_Paved_1N2W31' , HCA + '/Private_Paved_1N2W31')
+    return
+
+def Clean_up():
+    for i in in_feature_name:
+        in_fc = 'Public' + i
+        arcpy.Delete_management( HCM + '/' + in_fc)
+    arcpy.Delete_management( HCM + '/Public_Paved_1N2W31')
+    for i in in_feature_name:
+        in_fc = 'Private' + i
+        arcpy.Delete_management( HCM + '/' + in_fc)
+    arcpy.Delete_management( HCM + '/Private_Paved_1N2W31')
+    return
+
+#MODEL
+
+Create_master()
+Create_public()
+Create_private()
+Merge_copy()
+Clean_up()
+print'Geoprocessing Executed'
