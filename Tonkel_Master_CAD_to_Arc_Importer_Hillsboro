@@ -1,0 +1,69 @@
+#Author: Michael A. Langvad Tonkel
+#Date Created: 14 Jun 2015
+#Date Last Modified: 16 Jun 2015
+#Python Version: 2.7
+#Condition: Prototype
+#Contact: matonkel@gmail.com
+
+#Description: This script takes CAD data in *.dwg format as input and conversts it to ARC feature datasets.
+#Populates Master database with projection corrected features that follow naming conventions.
+
+#Advisory: The full implementation and automation capabilities of this script have been
+#deliberatly suppressed. This script is for demonstration purposes only.
+
+#SCRIPT
+
+import arcpy
+
+arcpy.env.overwriteOutput = True
+
+folder_path = "E:/hillstestpy"
+gdb_path = folder_path + '/HillsboroCityMaster.gdb'
+arcpy.env.workspace = gdb_path
+Out_gdb = gdb_path
+reference_scale = '100'
+fc = gdb_path + "/HillsboroCityLine"
+quad_name = '_1N2W31'
+sp_ref = arcpy.SpatialReference(2269)
+file_name = ['A' , 'B' , 'C' , 'D']
+batch = ['A_1N2W31' , 'B_1N2W31' , 'C_1N2W31' , 'D_1N2W31']
+
+def master_create():
+    for i in file_name:
+        file_name = i
+        Input_cad = folder_path + '/1N2W31' + file_name +'.dwg'
+        out_data_name = file_name +'_1N2W31'
+        arcpy.CADToGeodatabase_conversion(Input_cad , Out_gdb , out_data_name , reference_scale)
+    return
+
+def def_projection():
+    for i in batch:
+        input = '/' + i
+        arcpy.DefineProjection_management(gdb_path + input , sp_ref)
+    return
+
+def rename_clean():
+    for i in file_name:
+        file_name = i
+        name = [ 'Annotation' , 'MultiPatch' , 'Point' , 'Polygon' , 'Polyline']
+        for m in name:
+            name = m
+            fc_name = [ '' , '1' , '2' , '3']
+            for n in fc_name:
+                fc_name = n
+                path = gdb_path + '/' + file_name + quad_name + '/' + name + fc_name
+                if arcpy.Exists(path) != True:
+                    continue
+                else:
+                    out_data = name + quad_name + file_name
+                    arcpy.Rename_management(path , out_data)
+                    continue
+    return
+
+
+#MODEL
+
+master_create()
+def_projection()
+rename_clean()
+print 'Master Database Compiled'
