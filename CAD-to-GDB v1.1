@@ -1,0 +1,84 @@
+#Author: Michael A. Langvad Tonkel
+#Date Created: 14 Jun 2015
+#Date Last Modified: 16 Jun 2015
+#Python Version: 2.7
+#Condition: v1.1
+#Contact: matonkel@gmail.com
+
+#Description: This script takes CAD data in *.dwg format as input and conversts it to ARC feature datasets.
+#Populates Master database with projection corrected features that follow naming conventions.
+
+#SCRIPT
+
+import arcpy ,os
+
+arcpy.env.overwriteOutput = True
+
+
+gdb_path = 'E:/hillstestpy/HillsboroTest.gdb'
+arcpy.env.workspace = gdb_path
+
+database_loc = 'E:/hillstestpy/quadzipfiles'
+reference_scale = '100'
+
+rename_lst = ['']
+master_lst = []
+sp_ref = arcpy.SpatialReference(2269)
+batch_lst = []
+batch_size = 200
+
+def master_list():
+    dir_lst = os.listdir(database_loc)
+    for i in dir_lst:
+        master_lst.append(i)
+    return
+
+def master_create():
+    for i in master_lst:
+        Input_cad = database_loc + '/' + i
+        out_data_name = i[6] + '_' + i[:-5]
+        arcpy.CADToGeodatabase_conversion(Input_cad , gdb_path , out_data_name , reference_scale)
+    return
+
+def def_projection():
+    for i in master_lst:
+        input = '/' + i[6] + '_' + i[:-5]
+        if arcpy.Exists(gdb_path + input) != True:
+            continue
+        else:
+            arcpy.DefineProjection_management(gdb_path + input , sp_ref)
+            continue
+    return
+
+def rename_list():
+    for i in xrange(0 , batch_size + 1):
+        rename_lst.append(i)
+    return
+    
+def rename_clean():
+    for i in master_lst:
+        file_name = i
+        name = [ 'Annotation' , 'MultiPatch' , 'Point' , 'Polygon' , 'Polyline']
+        for m in name:
+            name = m
+            for n in rename_lst:
+                fc_name = n
+                path = gdb_path + '/' + file_name[6] + '_' + file_name[:-5] + '/' + name + str(fc_name)
+                if arcpy.Exists(path) != True:
+                    continue
+                else:
+                    out_data = name + '_' + file_name[6] +'_' +file_name[:-5]
+                    arcpy.Rename_management(path , out_data)
+                    continue
+    return
+
+
+#MODEL
+
+master_list()
+master_create()
+def_projection()
+rename_list()
+rename_clean()
+
+print 'Master Database Compiled'
